@@ -1,0 +1,47 @@
+设立api接口，接收连接，跟Java进行通信
+ 
+@app.route('/detect1',methods=['GET','POST'])
+def detec1t():
+    # global model
+    dataJModel = request.form.get('base64')
+    jsonJModel = json.loads(dataJModel)
+    img_list = jsonJModel["img_list"]
+    Vshow = np.asarray(img_list)
+    print('get img finish',Vshow.shape)
+    # results = model.detect([Vshow], verbose=1)
+    # r = results[0]
+    # return_img = detect_instances(Vshow, r['rois'], r['masks'], r['class_ids'], class_colors, class_names)
+    # r.pop("masks")
+
+    img_list = Vshow.tolist()
+    json_return = {}
+    json_return['img_list'] = img_list
+
+    return json.dumps(json_return)
+
+连接上面的程序
+from flask import Flask,Response,request
+import json
+import httplib
+import urllib
+import json
+from base64 import b64encode
+import cv2
+
+ENCODING = 'utf-8'    # 指定编码形式
+
+img = cv2.imread('./pic/origin/0.jpg')
+img_encode = cv2.imencode('.jpg', img)
+img = img_encode[1].tostring()
+base64_bytes = b64encode(img)
+base64_string = base64_bytes.decode(ENCODING)
+dataPModel={"base64":base64_string} #json object
+#input python model output java model
+params = urllib.parse.urlencode({'dataPModel':json.dumps(dataPModel)})
+headers = {"Content-type": "application/x-www-form-urlencoded", "Accept": "text/plain","charset":"UTF-8"}
+conn = httplib.HTTPConnection('192.168.102.192', port=8050, timeout=100)
+conn.request("POST", "/detect", params, headers)
+response = conn.getresponse()
+dataJModel = response.read() #json string
+conn.close()
+json.loads(dataJModel)
