@@ -1,0 +1,54 @@
+#测试端
+import http.client
+import http.client
+from io import BytesIO
+from PIL import Image
+import base64
+import http.client
+import urllib
+import json
+
+def image_to_base64(img):
+    # img = Image.open(image_path)
+    output_buffer = BytesIO()
+    img.save(output_buffer, format='JPEG')
+    byte_data = output_buffer.getvalue()
+    base64_str = base64.b64encode(byte_data)
+    return base64_str.decode()
+
+def get_detect(img,ip,port):
+    img_base64 = image_to_base64(img)
+    dataPModel = {"img_base64": img_base64}  # json object
+    params = urllib.parse.urlencode({'imginfo': json.dumps(dataPModel)})
+    headers = {"Content-type": "application/x-www-form-urlencoded", "Accept": "text/plain", "charset": "UTF-8"}
+    conn = http.client.HTTPConnection(ip, port=port, timeout=100)
+    conn.request("POST", "/Base64", params, headers)
+    response = conn.getresponse()
+    dataJModel = response.read()  # json string
+    conn.close()
+    jsonJModel = json.loads(dataJModel)
+    return jsonJModel["result"]['text']
+
+# test time, 25ms
+if __name__ == "__main__":
+    img = Image.open('i1.png').convert('L')
+    text = get_detect(img, '192.168.102.192', 8120)
+    print(text)
+    
+#服务器端：
+
+@app.route('/Base64',methods=['GET','POST'])
+def Base64():
+    global jputil
+    dataJModel = request.form.get('imginfo')
+    jsonJModel = json.loads(dataJModel)
+    img_base64 = jsonJModel["img_base64"]
+    img_PIL = base64_to_image(img_base64)
+
+    simPred = crnnOcr(img_PIL)
+    print(simPred)
+    jsonresult={}
+    jsonresult['text'] = simPred
+    jsoncode=200
+    jsonmsg="msg"
+    return jputil.toJavaResult(jsoncode,jsonmsg,jsonresult)
