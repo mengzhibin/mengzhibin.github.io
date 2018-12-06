@@ -52,3 +52,54 @@ def Base64():
     jsoncode=200
     jsonmsg="msg"
     return jputil.toJavaResult(jsoncode,jsonmsg,jsonresult)
+    
+    
+ # 以上为form提交方式，该方式被ajax弃用，所以可以用下面json方式发送
+ from io import BytesIO
+from PIL import Image
+import base64
+import json
+import re
+import requests
+
+def image_to_base64(img):
+    # img = Image.open(image_path)
+    output_buffer = BytesIO()
+    img.save(output_buffer, format='JPEG')
+    byte_data = output_buffer.getvalue()
+    base64_str = base64.b64encode(byte_data)
+    return base64_str.decode()
+
+def base64_to_image(base64_str):
+    base64_data = re.sub('^data:image/.+;base64,', '', base64_str)
+    byte_data = base64.b64decode(base64_data)
+    image_data = BytesIO(byte_data)
+    img = Image.open(image_data)
+    return img
+
+def json_send(dataPModel,url):
+    data = {'imginfo': dataPModel}
+    headers = {"Content-type": "application/json", "Accept": "text/plain", "charset": "UTF-8"}
+    response = requests.post(url=url, headers=headers, data=json.dumps(data))
+    return json.loads(response.text)
+
+if __name__ == "__main__":
+    url = 'http://192.168.102.198:8120/toRectByBase64'
+    img = Image.open('test.jpg')
+    img_base64 = image_to_base64(img)
+    dataPModel = {"img_base64": img_base64}
+    for i in range(100):
+        result = json_send(dataPModel,url)
+    base64_to_image(result['result']['base64']).save('abc.jpg')
+    print(result['result']['boxes'])
+
+
+服务器端代码如下：
+@app.route('/toRectByBase64',methods=['GET','POST'])
+def toRectByBase64():
+    global graph,yolo,draw
+    global jputil
+    if not request.json:
+        return jputil.toJavaResult(400, "received data is not json", '')
+    dataJModel = request.json['imginfo']
+    img_base64 = dataJModel["img_base64"]
