@@ -1,0 +1,57 @@
+1.安装ifenslave
+sudo apt-get install ifenslave
+2.加载内核支持
+sudo vi /etc/modules
+写入
+loop
+lp
+rtc
+bonding
+3.停止网络
+sudo systemctl stop networking.service
+4.加载内核绑定
+sudo modprobe bonding
+5.修改接口配置文件
+sudo vi /etc/network/interfaces
+
+内容如下：
+# interfaces(5) file used by ifup(8) and ifdown(8)
+auto lo
+iface lo inet loopback
+
+
+auto enp129s0f0 #enp129s0f0 为网卡名称，ifconfig可以看到
+iface enp129s0f0 inet manual
+pre-up ifconfig enp129s0f0 hw ether  ac:1f:6b:28:bb:b0 #mac 地址
+bond-master bond0
+bond-primary enp129s0f0 enp129s0f1
+
+
+
+auto enp129s0f1
+iface enp129s0f1 inet manual
+pre-up ifconfig enp129s0f1 hw ether ac:1f:6b:28:bb:b1 # mac物理地址
+bond-master bond0
+bond-primary enp129s0f0 enp129s0f1
+
+
+auto bond0
+iface bond0 inet static
+pre-up ifconfig bond0 hw ether ac:1f:6b:28:bb:b0 #mac 物理地址
+address 192.168.102.31
+gateway 192.168.102.1
+netmask 255.255.255.0
+bond-mode active-backup #主备模式，也可以使用负载模式balance-rr,或者其它:balance-xor,broadcast,802.3ad,
+bond-miimon 100
+bond-slaves none
+dns-nameserver 8.8.8.8 #dns-nameserver
+
+6.重启网卡2种方式
+sudo /etc/init.d/networking restart
+sudo systemctl restart networking.service
+7.查看ip addr
+如果bond0网卡状态为state down，此时需要重启服务器，然后再执行命令启动网卡（步骤6）
+再查看状态bond0为state up就可以了
+
+单一启动网卡命令：ifconfig enp129s0f1 up 或者 ifup enp129s0f1
+
