@@ -1,0 +1,14 @@
+首先打包程序如下
+
+名为setup.py，内容如下，放于根目录：
+
+from distutils.core import setup
+from Cython.Build import cythonize
+
+setup(ext_modules=cythonize(["yolo3/utils.py", "yolo3/model.py", "yolo3_predict.py", ]), script_args=["build_ext", "-b", "build"])
+
+但该工程打包时出现问题，项目根目录为landmark_dlib，yolo3_predict的包名编译成为了landmark_dlib.yolo3_predict，而正确的包名应该为yolo3_predict。
+
+解决方法：
+
+将需要打包的文件单独转移出来，新建文件夹放进去，就不会再出现以上错误。
